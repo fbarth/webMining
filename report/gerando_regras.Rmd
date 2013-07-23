@@ -1,0 +1,56 @@
+Criando regras de associação a partir do log de um servidor web
+===============================================================
+
+No script **tratando_web_log.Rmd** foi apresentado como transformar um log padrão de um servidor web em um conjunto de transações. 
+
+Neste script nós vamos apresentar como identificar regras de associação a partir do conjunto de transações. Para isto, nós vamos precisar de dois pacotes (arules e arulesViz) e carregar os arquivos criados no script anterior.
+
+```{r message=FALSE, warning=FALSE}
+library(arules)
+library(arulesViz)
+
+load("../data/transacoes.rda")
+load("../data/urls.rda")
+```
+
+O dataset que será analisado possui as seguintes características:
+
+````{r}
+transacoes
+````
+
+Os itens que possuem suporte igual ou superior são ilustrados no gráfico abaixo:
+
+````{r}
+itemFrequencyPlot(transacoes, support= 0.05)
+````
+
+As URLs são:
+
+````{r}
+subset(hash, hash$key == "2")
+subset(hash, hash$key == "9")
+subset(hash, hash$key == "18")
+subset(hash, hash$key == "32")
+````
+
+Um gráfico útil para visualizar as transações é apresentado abaixo:
+
+````{r fig.width=10, fig.height=8}
+image(transacoes)
+````
+
+As regras podem ser geradas utilizando o algoritmo **apriori**:
+
+````{r}
+rules <- apriori(transacoes, parameter= list(supp=0.05, conf= 0.2, minlen=2))
+inspect(rules)
+````
+
+````{r}
+plot(rules)
+````
+
+````{r fig.width=10, fig.height=8}
+plot(rules, method = "graph", control = list(type = "items"))
+````

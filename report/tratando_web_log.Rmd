@@ -7,7 +7,7 @@ setwd("~/Documents/R/webMining/report")
 
 Este relatório é o primeiro de um conjunto de relatórios onde o objetivo é ilustrar a utilização da linguagem de programação R na mineração de padrões em servidores Web.
 
-O objetivo deste relatório é descrever a etapa de transformação do log de um servidor web para uma estrutura de dados manipulável por algoritmos de __data mining__.
+O objetivo deste relatório é descrever a etapa de transformação do log padrão de um servidor web para uma estrutura de dados manipulável por algoritmos de __data mining__.
 
 Para ilustrar o funcionamento dos algoritmos será utilizado um log do site [http://fbarth.net.br](http://fbarth.net.br). Este log está no arquivo **../data/20130620_access.log** e pode ser acessado no ambiente R através do seguinte comando:
 
