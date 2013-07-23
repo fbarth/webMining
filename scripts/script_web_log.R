@@ -27,9 +27,6 @@ dataset <- subset(dataset, dataset$status != '404')
 length(levels(dataset$ip))
 dim(dataset)
 
-plot(table(dataset$ip))
-plot(table(dataset$url))
-
 # excluindo todas as transacoes que tem uma chamada HEAD para a URL
 dataset <- dataset[!grepl("HEAD", dataset$url),]
 
