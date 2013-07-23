@@ -52,6 +52,39 @@ Todas as variáveis identificadas acima podem fazer parte de um mesmo dataset:
 
 ```r
 dataset <- data.frame(ip, time, url, ref, status, agent)
+dim(dataset)
+```
+
+```
+## [1] 3439    6
+```
+
+```r
+head(dataset)
+```
+
+```
+##                ip       time                                         url
+## 1   66.249.73.206 2013-06-20       /materiais/docs/estruturas/aFilas.pdf
+## 2 193.105.210.216 2013-06-20   /materiais/docs/estruturas/aOrdenacao.pdf
+## 3 193.105.210.216 2013-06-20                                           /
+## 4   66.249.73.206 2013-06-20             /materiais/docs/soujava2008.pdf
+## 5   94.228.220.68 2013-06-20           /templates/system/css/toolbar.css
+## 6   66.249.73.206 2013-06-20 /materiais/docs/am/analiseDescritiva_v3.pdf
+##                                                             ref status
+## 1                                                             -    304
+## 2 http://fbarth.net.br/materiais/docs/estruturas/aOrdenacao.pdf    200
+## 3                                         http://fbarth.net.br/    200
+## 4                                                             -    304
+## 5                                                             -    404
+## 6                                                             -    304
+##                                                                                                  agent
+## 1 DoCoMo/2.0 N905i(c100;TB;W24H16) (compatible; Googlebot-Mobile/2.1; +http://www.google.com/bot.html)
+## 2                                    Mozilla/5.0 (Windows NT 6.2; rv:16.0) Gecko/20100101 Firefox/16.0
+## 3                                    Mozilla/5.0 (Windows NT 6.2; rv:16.0) Gecko/20100101 Firefox/16.0
+## 4                             Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+## 5                             Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+## 6                             Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 ```
 
 
@@ -68,6 +101,10 @@ remove(url)
 remove(access_log)
 ```
 
+
+
+Remoção de registros irrelevantes
+---------------------------------
 
 Depois de criado o dataset, é possível analisar o seu conteúdo e eliminar alguns registros, como por exemplo: acessos que não retornaram documentos ou acessos realizados por __crawlers__.
 
@@ -120,23 +157,136 @@ dataset <- dataset[!grepl("Sitemaps Generator", dataset$agent), ]
 
 
 ```r
-length(levels(dataset$url))
+slices <- 100 * table(dataset$ip)/length(dataset$ip)
+pct <- round(slices/sum(slices) * 100)
+lbls <- ifelse(pct > 2, paste(levels(dataset$ip), paste(pct, "%", sep = "")), 
+    "")
+pie(slices, labels = lbls, col = rainbow(length(lbls)), main = "IPs que acessaram o site durante o período analisado")
 ```
 
-```
-## [1] 358
-```
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
+
+
 
 ```r
-pie(table(dataset$ip))
+slices <- 100 * table(dataset$url)/length(dataset$url)
+pct <- round(slices/sum(slices) * 100)
+lbls <- ifelse(pct > 1, paste(levels(dataset$url), paste(pct, "%", sep = "")), 
+    "")
+pie(slices, labels = lbls, col = rainbow(length(lbls)), main = "URLs que foram acessadas durante o período analisado")
 ```
 
-![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-81.png) 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+
+
+Descoberta das seções
+---------------------
+
+Com a filtragem de dados finalizadas. A próxima etapa será identificar as seções. Para este trabalho a regra será bem simples: um registro com o mesmo __ip__, __dia__ e __agent__ será uma mesma seção.
+
+Código para definir a mesma seção:
 
 ```r
-pie(table(dataset$url))
+cont <- 1
+hash <- data.frame(paste(dataset[1, 1], dataset[1, 2], dataset[1, 6]), cont)
+names(hash) <- c("value", "key")
+s <- c()
+s[1] <- (subset(hash, hash$value == (paste(dataset[1, 1], dataset[1, 2], dataset[1, 
+    6])))$key)
+
+for (i in 2:dim(dataset)[1]) {
+    if (!((paste(dataset[i, 1], dataset[i, 2], dataset[i, 6])) %in% hash$value)) {
+        cont <- cont + 1
+        hash <- rbind(hash, data.frame(value = (paste(dataset[i, 1], dataset[i, 
+            2], dataset[i, 6])), key = cont))
+        s[i] <- (subset(hash, hash$value == (paste(dataset[i, 1], dataset[i, 
+            2], dataset[i, 6])))$key)
+    } else {
+        s[i] <- (subset(hash, hash$value == (paste(dataset[i, 1], dataset[i, 
+            2], dataset[i, 6])))$key)
+    }
+}
+dataset["session"] <- as.factor(s)
+remove(hash)
+remove(cont)
+remove(i)
+remove(s)
+plot(table(dataset$session))
 ```
 
-![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-82.png) 
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10.png) 
 
+
+Para facilitar a visualização das regras, as URLs serão convertidas para URLs curtas.
+
+
+```r
+cont <- 1
+hash <- data.frame(dataset[1, 3], cont)
+names(hash) <- c("value", "key")
+s <- c()
+s[1] <- (subset(hash, hash$value == (dataset[1, 3]))$key)
+
+for (i in 2:dim(dataset)[1]) {
+    if (!(dataset[i, 3] %in% hash$value)) {
+        cont <- cont + 1
+        hash <- rbind(hash, data.frame(value = (dataset[i, 3]), key = cont))
+        s[i] <- (subset(hash, hash$value == (dataset[i, 3]))$key)
+    } else {
+        s[i] <- (subset(hash, hash$value == (dataset[i, 3]))$key)
+    }
+}
+
+dataset["short_url"] <- as.factor(s)
+
+remove(cont)
+remove(i)
+remove(s)
+
+plot(table(dataset$short_url))
+```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
+
+
+Criação da matriz de transações
+-------------------------------
+
+Até este momento temos um dataset com os seguintes atributos:
+
+
+```r
+names(dataset)
+```
+
+```
+## [1] "ip"        "time"      "url"       "ref"       "status"    "agent"    
+## [7] "session"   "short_url"
+```
+
+
+A partir deste dataset é necessário criar uma matriz de transações onde para cada seção são apresentadas as URLs acessadas naquela seção.
+
+
+```r
+library(arules)
+tabela <- table(dataset$session, dataset$short_url)
+class(tabela) <- "matrix"
+transacoes <- as(tabela, "transactions")
+```
+
+
+
+```r
+transacoes
+```
+
+```
+## transactions in sparse format with
+##  271 transactions (rows) and
+##  89 items (columns)
+```
+
+
+Depois de criada a estrutura que armazena as transações então podemos salvá-la utilizando o formado **rda** do próprio R. Para isto basta executar o comando __save(transacoes, file="../data/transacoes.rda")__. Também podemos salvar a tabela original (__save(tabela, file="../data/tabela.rda")__) e o nome das URLs (__save(hash, file="../data/urls.rda")__).
 

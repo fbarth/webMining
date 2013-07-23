@@ -1,7 +1,7 @@
 Pré-processamento de um log de servidor web para a mineração de padrões
 =======================================================================
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
 setwd("~/Documents/R/webMining/report")
 ````
 
@@ -36,6 +36,8 @@ Todas as variáveis identificadas acima podem fazer parte de um mesmo dataset:
 
 ````{r}
 dataset <- data.frame(ip,time,url,ref,status,agent)
+dim(dataset)
+head(dataset)
 ````
 
 Podemos também eliminar as variáveis que não vamos mais utilizar no workspace:
@@ -49,6 +51,10 @@ remove(time)
 remove(url)
 remove(access_log)
 ````
+
+
+Remoção de registros irrelevantes
+---------------------------------
 
 Depois de criado o dataset, é possível analisar o seu conteúdo e eliminar alguns registros, como por exemplo: acessos que não retornaram documentos ou acessos realizados por __crawlers__.
 
@@ -88,11 +94,22 @@ dataset <- dataset[!grepl("YandexBot", dataset$agent),]
 dataset <- dataset[!grepl("Sitemaps Generator", dataset$agent),]
 ````
 
-````{r}
-length(levels(dataset$url))
-pie(table(dataset$ip))
-pie(table(dataset$url))
+````{r fig.width=10, fig.height=8}
+slices <- 100 * table(dataset$ip) / length(dataset$ip)
+pct <- round(slices/sum(slices)*100)
+lbls <- ifelse(pct > 2, paste(levels(dataset$ip), paste(pct,"%",sep="")), "")
+pie(slices, labels=lbls, col=rainbow(length(lbls)), main = "IPs que acessaram o site durante o período analisado")
 ````
+
+````{r fig.width=10, fig.height=8}
+slices <- 100 * table(dataset$url) / length(dataset$url)
+pct <- round(slices/sum(slices)*100)
+lbls <- ifelse(pct > 1, paste(levels(dataset$url), paste(pct,"%",sep="")), "")
+pie(slices, labels=lbls, col=rainbow(length(lbls)), main = "URLs que foram acessadas durante o período analisado")
+````
+
+Descoberta das seções
+---------------------
 
 Com a filtragem de dados finalizadas. A próxima etapa será identificar as seções. Para este trabalho a regra será bem simples: um registro com o mesmo __ip__, __dia__ e __agent__ será uma mesma seção.
 
@@ -114,4 +131,62 @@ for (i in 2:dim(dataset)[1]){
   }    
 }
 dataset['session'] <- as.factor(s)
+remove(hash)
+remove(cont)
+remove(i)
+remove(s)
+plot(table(dataset$session))
 ````
+
+Para facilitar a visualização das regras, as URLs serão convertidas para URLs curtas.
+
+````{r}
+cont <- 1
+hash <- data.frame(dataset[1,3],cont)
+names(hash) <- c("value","key")
+s <- c()
+s[1] <- (subset(hash, hash$value == (dataset[1,3]))$key)
+
+for (i in 2:dim(dataset)[1]){
+  if(! (dataset[i,3] %in% hash$value)){
+    cont <- cont + 1
+    hash <- rbind(hash, data.frame(value=(dataset[i,3]), key=cont))
+    s[i] <- (subset(hash, hash$value == (dataset[i,3]))$key)
+  }else{
+    s[i] <- (subset(hash, hash$value == (dataset[i,3]))$key)
+  }    
+}
+
+dataset['short_url'] <- as.factor(s)
+
+remove(cont)
+remove(i)
+remove(s)
+
+plot(table(dataset$short_url))
+````
+
+Criação da matriz de transações
+-------------------------------
+
+Até este momento temos um dataset com os seguintes atributos:
+
+````{r}
+names(dataset)
+````
+
+A partir deste dataset é necessário criar uma matriz de transações onde para cada seção são apresentadas as URLs acessadas naquela seção.
+
+````{r message=FALSE, warning=FALSE}
+library(arules)
+tabela <- table(dataset$session, dataset$short_url)
+class(tabela) <- "matrix"
+transacoes <- as(tabela, "transactions")
+````
+
+````{r}
+transacoes
+````
+
+Depois de criada a estrutura que armazena as transações então podemos salvá-la utilizando o formado **rda** do próprio R. Para isto basta executar o comando __save(transacoes, file="../data/transacoes.rda")__. Também podemos salvar a tabela original (__save(tabela, file="../data/tabela.rda")__) e o nome das URLs (__save(hash, file="../data/urls.rda")__).
+

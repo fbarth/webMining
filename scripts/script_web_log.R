@@ -126,10 +126,9 @@ plot(table(dataset$short_url))
 # inicio da criacao da matriz de transacoes
 #
 
+library(arules)
 tabela <- table(dataset$session, dataset$short_url)
 class(tabela) <- "matrix"
-
-# TODO criar uma transactions a partir da tabela
 transacoes <- as(tabela, "transactions")
 
 save(tabela, file="../data/tabela.rda")
