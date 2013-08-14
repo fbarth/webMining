@@ -1,16 +1,21 @@
 library(arules)
 library(arulesViz)
-
-load("../data/transacoes.rda")
-load("../data/urls.rda")
+setwd("~/Documents/R/webMining/scripts")
+load("../data/transacoes_201308.rda")
+load("../data/urls_201308.rda")
 
 transacoes
 itemFrequencyPlot(transacoes, support= 0.05)
 
-subset(hash, hash$key == "2")
-subset(hash, hash$key == "9")
-subset(hash, hash$key == "18")
-subset(hash, hash$key == "32")
+subset(hash, hash$key == "3" | 
+         hash$key == "6" | 
+         hash$key == "9" | 
+         hash$key == "10" | 
+         hash$key == "11" | 
+         hash$key== "15" | 
+         hash$key == "21" | 
+         hash$key == "22" | 
+         hash$key == "28")
 
 image(transacoes)
 

@@ -1,5 +1,4 @@
-setwd("~/Documents/R/web_mining/scripts")
-
+setwd("~/Documents/R/webMining/scripts")
 access_log <- read.table("../data/20130620_access.log")
 
 ip <- access_log[,1]
@@ -55,13 +54,20 @@ dataset <- dataset[!grepl("bingbot", dataset$agent),]
 dataset <- dataset[!grepl("wotbox", dataset$agent),]
 # eliminando todos os acessos feitos via YandexBot
 dataset <- dataset[!grepl("YandexBot", dataset$agent),]
-
-length(levels(dataset$url))
-pie(table(dataset$ip))
-pie(table(dataset$url))
-
 # eliminando todos os acessos feitos via Sitemaps Generator
 dataset <- dataset[!grepl("Sitemaps Generator", dataset$agent),]
+
+
+slices <- 100 * table(dataset$ip) / length(dataset$ip)
+pct <- round(slices/sum(slices)*100)
+lbls <- ifelse(pct > 2, paste(levels(dataset$ip), paste(pct,"%",sep="")), "")
+pie(slices, labels=lbls, col=rainbow(length(lbls)), main = "IPs que acessaram o site durante o período analisado")
+
+
+slices <- 100 * table(dataset$url) / length(dataset$url)
+pct <- round(slices/sum(slices)*100)
+lbls <- ifelse(pct > 1, paste(levels(dataset$url), paste(pct,"%",sep="")), "")
+pie(slices, labels=lbls, col=rainbow(length(lbls)), main = "URLs que foram acessadas durante o período analisado")
 
 #
 # filtragem de dados finalizada
@@ -128,9 +134,10 @@ plot(table(dataset$short_url))
 
 library(arules)
 tabela <- table(dataset$session, dataset$short_url)
+save(tabela, file="../data/tabela.rda")
+
 class(tabela) <- "matrix"
 transacoes <- as(tabela, "transactions")
 
-save(tabela, file="../data/tabela.rda")
 save(transacoes, file="../data/transacoes.rda")
 save(hash, file="../data/urls.rda")
